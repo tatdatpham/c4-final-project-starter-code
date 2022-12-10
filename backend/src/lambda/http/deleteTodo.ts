@@ -12,7 +12,12 @@ export const handler = middy(
     const todoId = event.pathParameters.todoId
     // TODO: Remove a TODO item by id
     
-    return undefined
+    await deleteTodo(todoId);
+
+    return {
+      statusCode: 204,
+      body: 'delete successfully'
+    }
   }
 )
 
