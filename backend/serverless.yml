@@ -1,7 +1,8 @@
 # TODO: Change the name of the org 
-org: sudkul
 app: serverless-todo-app
 service: serverless-todo-app
+
+configValidationMode: error
 
 plugins:
   - serverless-webpack
@@ -11,7 +12,6 @@ plugins:
 provider:
   name: aws
   runtime: nodejs12.x
-  lambdaHashingVersion: '20201221'
 
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'ap-southeast-1'}
@@ -114,9 +114,8 @@ functions:
           #   description: Create a new To Do
           #   requestModels:
           #     'application/json': ToDoCreate
-          request: 
-          # schema that will be used to validate incoming requests
-            schema:
+          request:
+            schemas:
               application/json: ${file(models/create-todo-model.json)}
     iamRoleStatementsName: create-todo-role-function-modify
     iamRoleStatements: 
@@ -148,8 +147,9 @@ functions:
           #   requestModels:
           #     'application/json': ToDoUpdate
           # schema that will be used to validate incoming requests
-          schema:
-            application/json: ${file(models/update-todo-model.json)}
+          request:   
+            schemas:
+              application/json: ${file(models/update-todo-model.json)}
     iamRoleStatementsName: update-todo-role-function
     iamRoleStatements:
       - Effect: Allow
