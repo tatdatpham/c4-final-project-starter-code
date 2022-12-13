@@ -163,16 +163,11 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - dynamodb:PutItem
-          - dynamodb:GetItem
           - dynamodb:Query
           - dynamodb:DeleteItem
-          - dynamodb:UpdateItem
         Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
       - Effect: Allow
         Action: 
-          - s3:PutObject
-          - s3:GetObject
           - s3:DeleteObject
         Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
       - Effect: Allow
