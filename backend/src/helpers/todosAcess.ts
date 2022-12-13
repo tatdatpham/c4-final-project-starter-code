@@ -13,8 +13,7 @@ const logger = createLogger('TodosAccess')
 export class TodosAccess {
     constructor(
         private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
-        private readonly todosTable = process.env.TODOS_TABLE,
-        private readonly todoIndexTable = process.env.TODOS_CREATED_AT_INDEX
+        private readonly todosTable = process.env.TODOS_TABLE
     ){}
 
     async getUserTodos(userId: string){
@@ -31,6 +30,22 @@ export class TodosAccess {
         return result.Items
     }
 
+    async getTodo(todoId: string, userId: string): Promise<TodoItem> {
+        logger.info('Getting to do for userID: ', {userId: userId})
+
+        const query = await this.docClient.query({
+            TableName: process.env.TODOS_TABLE,
+            KeyConditionExpression: 'userId = :userId AND todoId = :todoId',
+            ExpressionAttributeValues: {
+                ':userId': userId,
+                ':todoId': todoId
+            }
+        }).promise()
+
+        const items = query.Items
+        return items[0] as TodoItem
+    }
+
     async createTodo(TodoItem: TodoItem){
         logger.info("Creating new todo object:", TodoItem);
         await this.docClient.put({
@@ -41,16 +56,8 @@ export class TodosAccess {
         return TodoItem;
     }
 
-    async updateTodo(todoId, TodoUpdate: TodoUpdate){
-        const result = await this.docClient.query({
-            TableName: this.todosTable,
-            IndexName: this.todoIndexTable,
-            KeyConditionExpression: "todoId =:todoId",
-            ExpressionAttributeValues:{
-            ":todoId": todoId
-            }
-        }).promise();
-
+    async updateTodo(todoId, userId: string, TodoUpdate: TodoUpdate){
+        
         logger.info("Updating todo:", {
             todoId: todoId,
             TodoUpdate: TodoUpdate
@@ -59,37 +66,53 @@ export class TodosAccess {
         await this.docClient.update({
             TableName: this.todosTable,
             Key: {
-                userId: result.Items[0].userId,
-                createdAt: result.Items[0].createdAt
+                todoId: todoId,
+                userId: userId
             },
-            UpdateExpression: "SET name = :name, dueDate = :dueDate, done = :done",
+            UpdateExpression: "set #n = :n, dueDate = :dueDate, done = :done",
             ExpressionAttributeValues: {
-                ":name": TodoUpdate.name,
+                ":n": TodoUpdate.name,
                 ":dueDate": TodoUpdate.dueDate,
-                ":done": TodoUpdate.done
-            }
-        }).promise()
+                ":done": TodoUpdate.done,
+            },
+            ExpressionAttributeNames: { '#n': "name" }
+        }).promise();
         logger.info("Update complete.")
     }
 
     async deleteTodo(userId: string, todoId: string){
         logger.info("Deleting todo:", {todoId: todoId});
-        const result = await this.docClient.query({
-            TableName: this.todosTable,
-            IndexName: this.todoIndexTable,
-            KeyConditionExpression: "userId = :userId and todoId = :todoId",
-            ExpressionAttributeValues:{
-                ':userId': userId,
-                ":todoId": todoId
-            }
-        }).promise();
-        logger.info("Query passed! Start to delete ...");
         await this.docClient.delete({
             TableName: this.todosTable,
             Key: {
-                "todoId": result.Items[0].todoId
-            }
-        }).promise()
-        logger.info("Delete complete.", {todoId: todoId});
+                todoId: todoId,
+                userId: userId
+            },
+        }).promise();
+        logger.info("Delete complete.", {todoId: todoId, userId: userId});
+    }
+
+    // Update attachment Url
+    async updateImageSourceToDo(todoId: string, userId: string, imageId: string) {
+        logger.info("Updating attachment:", {imageId: imageId});
+        var attachmentUrl = `https://${process.env.ATTACHMENT_S3_BUCKET}.s3.amazonaws.com/${imageId}.png`
+        if (imageId === "" || imageId === null) {
+            attachmentUrl = null
+            imageId = null
+        }
+
+        await this.docClient.update({
+            TableName: this.todosTable,
+            Key: {
+                userId: userId,
+                todoId: todoId
+            },
+            UpdateExpression: "set attachmentUrl = :attachmentUrl, imageId = :imageId",
+            ExpressionAttributeValues: {
+                ":attachmentUrl": attachmentUrl,
+                ":imageId": imageId,
+            },
+        }).promise();
+        logger.info("Update complete.")
     }
 }

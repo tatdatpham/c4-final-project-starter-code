@@ -4,9 +4,9 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import * as middy from 'middy'
 import { cors, httpErrorHandler } from 'middy/middlewares'
 
-import { updateTodo } from '../../helpers/todos'
+import { updateTodo, createAttachmentPresignedUrl } from '../../helpers/todos'
 import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
-// import { getUserId } from '../utils'
+import { getUserId } from '../utils'
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -14,11 +14,19 @@ export const handler = middy(
     const updatedTodo: UpdateTodoRequest = JSON.parse(event.body)
     // TODO: Update a TODO item with the provided id using values in the "updatedTodo" object
 
-
-    await updateTodo(todoId, updatedTodo);
+    const userId = getUserId(event)
+    await updateTodo(todoId, userId, updatedTodo);
+    // If user submit image, return presigned url
+    var uploadUrl: string = "";
+    if (updatedTodo.uploadImage === true) {
+      uploadUrl = await createAttachmentPresignedUrl(todoId, userId);
+    }
     return {
       statusCode: 204,
-      body: 'update successfully'
+      body: JSON.stringify({
+        "item": updatedTodo,
+        "uploadUrl": uploadUrl
+      }),
     }
   }
 )

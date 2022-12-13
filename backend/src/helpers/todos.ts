@@ -26,14 +26,31 @@ export async function createTodo(requestBody: CreateTodoRequest, userId: string)
     })
 }
 
-export async function updateTodo(todoId: string, requestBody: UpdateTodoRequest){
-    await todosAccess.updateTodo(todoId, requestBody);
+export async function updateTodo(todoId: string, userId: string, requestBody: UpdateTodoRequest){
+    await todosAccess.updateTodo(todoId, userId, requestBody);
 }
 
 export async function deleteTodo(userId: string, todoId: string): Promise<void>{
+    await deleteImageTodo(todoId, userId)
     await todosAccess.deleteTodo(userId, todoId);
 }
 
-export async function createAttachmentPresignedUrl(todoId: string){
-    return await attachmentUtils.getUploadUrl(todoId);
+export async function createAttachmentPresignedUrl(todoId: string, userId: string){
+    // Random image id
+    const imageId = uuid();
+    await todosAccess.updateImageSourceToDo(todoId, userId, imageId);
+    // Get upload url
+    return await attachmentUtils.getSignedUrl(imageId);
 }
+
+export async function deleteImageTodo(todoId: string, userId: string) {
+    const todo = await todosAccess.getTodo(todoId, userId)
+
+    if (todo.attachmentUrl !== undefined && todo.attachmentUrl !== null && todo.attachmentUrl !== "") {
+
+        // Delete old image
+        await attachmentUtils.deleteImageFile(todo.attachmentUrl)
+        await todosAccess.updateImageSourceToDo(todoId, userId, '');
+    }
+}
+

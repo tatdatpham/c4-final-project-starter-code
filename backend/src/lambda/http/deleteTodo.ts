@@ -16,7 +16,10 @@ export const handler = middy(
 
     return {
       statusCode: 204,
-      body: 'delete successfully'
+      body: JSON.stringify({
+        'delete': true,
+        'todoId': todoId
+      }),
     }
   }
 )
