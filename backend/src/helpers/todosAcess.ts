@@ -72,16 +72,18 @@ export class TodosAccess {
         logger.info("Update complete.")
     }
 
-    async deleteTodo(todoId: string){
+    async deleteTodo(userId: string, todoId: string){
         logger.info("Deleting todo:", {todoId: todoId});
         const result = await this.docClient.query({
             TableName: this.todosTable,
             IndexName: this.todoIndexTable,
-            KeyConditionExpression: "todoId =:todoId",
+            KeyConditionExpression: "userId = :userId and todoId = :todoId",
             ExpressionAttributeValues:{
-            ":todoId": todoId
+                ':userId': userId,
+                ":todoId": todoId
             }
         }).promise();
+        logger.info("Query passed! Start to delete ...");
         await this.docClient.delete({
             TableName: this.todosTable,
             Key: {

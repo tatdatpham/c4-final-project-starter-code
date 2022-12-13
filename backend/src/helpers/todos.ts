@@ -30,8 +30,8 @@ export async function updateTodo(todoId: string, requestBody: UpdateTodoRequest)
     await todosAccess.updateTodo(todoId, requestBody);
 }
 
-export async function deleteTodo(todoId: string): Promise<void>{
-    await todosAccess.deleteTodo(todoId);
+export async function deleteTodo(userId: string, todoId: string): Promise<void>{
+    await todosAccess.deleteTodo(userId, todoId);
 }
 
 export async function createAttachmentPresignedUrl(todoId: string){

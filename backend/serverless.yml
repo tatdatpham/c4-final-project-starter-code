@@ -1,6 +1,6 @@
 # TODO: Change the name of the org 
-app: serverless-todo-app
-service: serverless-todo-app
+app: datpt45-serverless-todo-app
+service: datpt45-serverless-todo-app
 
 configValidationMode: error
 
@@ -14,7 +14,7 @@ provider:
   runtime: nodejs12.x
 
   stage: ${opt:stage, 'dev'}
-  region: ${opt:region, 'ap-southeast-1'}
+  region: ${opt:region, 'us-east-1'}
 
   tracing:
     lambda: true
@@ -25,34 +25,15 @@ provider:
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    ATTACHMENT_S3_BUCKET: serverless-c4-todo-images-${self:provider.stage}
+    ATTACHMENT_S3_BUCKET: datpt45-serverless-c4-todo-images-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
     AUTH_0_SECRET: NpeQ728Gr26_wwwxa9BL9Agm91H-8CSllMjCgpbQ160x01M51ZmVQf8nZZeyNmCk
+    AUTH_0_WEB_KEY_SET: https://dev-05z7nkg1o0x1uk6r.us.auth0.com/.well-known/jwks.json
 
   logs:
     # Enable API Gateway logs
     restApi: true
 
-  iam:
-    role:
-      statements:
-        - Effect: Allow
-          Action:
-            - xray:PutTelemetryRecords
-            - xray:PutTraceSegments
-          Resource: "*"
-        - Effect: Allow
-          Action:
-            - dynamodb:scan
-            - dynamodb:PutItem
-            - dynamodb:GetItem
-            - dynamodb:Query
-          Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
-        - Effect: Allow
-          Action:
-            - s3:PutObject
-            - S3:GetObject
-          Resource: arn:aws:S3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*
 
 custom:
   documentation:
@@ -264,7 +245,7 @@ resources:
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: todoId
+          - AttributeName: createdAt
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.TODOS_TABLE}
@@ -273,7 +254,7 @@ resources:
             KeySchema:
               - AttributeName: userId
                 KeyType: HASH
-              - AttributeName: createdAt
+              - AttributeName: todoId
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL # What attributes will be copied to an index
@@ -286,18 +267,18 @@ resources:
         BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
         CorsConfiguration:
           CorsRules:
-            -
-              AllowedOrigins:
-                - '*'
-              AllowedHeaders:
+            - AllowedHeaders:
                 - '*'
               AllowedMethods:
-                - Get
-                - PUT
+                - GET
                 - POST
+                - PUT
                 - DELETE
-                - HEAD
-              MaxAge: 3000
+              AllowedOrigins:
+                - '*'
+              ExposedHeaders:
+                - Date
+              MaxAge: 3600
 
     # TODO: Complete the policy below and attach it to the bucket defined above
     # For cross referencing the name of the bucket, use "!Ref AttachmentsBucket"
@@ -306,14 +287,13 @@ resources:
       Properties:
         Bucket: !Ref AttachmentsBucket
         PolicyDocument:
-          Id: MyPolicy
-          Version: "2012-10-17"
-          statements:
+          Version: '2012-10-17'
+          Statement:
             - Sid: PublicReadForGetBuckerObjects
               Effect: Allow
               Principal: '*'
               Action: 'S3:GetObject'
-              Resource: 'arn:aws:S3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
+              Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
         
 
 
